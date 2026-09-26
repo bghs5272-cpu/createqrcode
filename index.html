@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>수업용 QR코드 생성기</title>
+    <!-- 외부 라이브러리 로드: Tailwind CSS (스타일링), QRCode.js (QR생성) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <!-- 폰트 적용 (Pretendard 또는 Inter) -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* QR코드 컨테이너 안의 이미지가 가운데 정렬되도록 처리 */
+        #qrcode-container img, #qrcode-container canvas {
+            margin: 0 auto;
+            border-radius: 0.5rem;
+        }
+        /* 페이드인 애니메이션 */
+        .fade-in {
+            animation: fadeIn 0.4s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen flex flex-col items-center justify-center p-4 sm:p-8">
+
+    <main class="w-full max-w-md bg-white rounded-3xl shadow-xl overflow-hidden border border-slate-100">
+        <!-- 상단 장식 헤더 -->
+        <div class="bg-indigo-600 p-6 text-center">
+            <div class="inline-flex items-center justify-center w-16 h-16 bg-white/20 rounded-2xl mb-4 backdrop-blur-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm14 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
+                </svg>
+            </div>
+            <h1 class="text-2xl font-bold text-white mb-1">스마트 QR 생성기</h1>
+            <p class="text-indigo-100 text-sm">학생들에게 공유할 링크를 QR코드로 만드세요.</p>
+        </div>
+
+        <div class="p-6 md:p-8 space-y-6">
+            <!-- URL 입력 폼 -->
+            <div class="space-y-2">
+                <label for="url-input" class="block text-sm font-semibold text-slate-700">공유할 웹 주소 (URL)</label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <svg class="h-5 w-5 text-slate-400" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M12.586 4.586a2 2 0 112.828 2.828l-3 3a2 2 0 01-2.828 0 1 1 0 00-1.414 1.414 4 4 0 005.656 0l3-3a4 4 0 00-5.656-5.656l-1.5 1.5a1 1 0 101.414 1.414l1.5-1.5zm-5 5a2 2 0 012.828 0 1 1 0 101.414-1.414 4 4 0 00-5.656 0l-3 3a4 4 0 105.656 5.656l1.5-1.5a1 1 0 10-1.414-1.414l-1.5 1.5a2 2 0 11-2.828-2.828l3-3z" clip-rule="evenodd" />
+                        </svg>
+                    </div>
+                    <input type="url" id="url-input" 
+                        class="block w-full pl-10 pr-3 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all placeholder-slate-400 text-slate-700 bg-slate-50 focus:bg-white" 
+                        placeholder="https://github.com/..." required>
+                </div>
+                <p id="error-message" class="text-red-500 text-xs hidden">유효한 URL 주소를 입력해주세요.</p>
+            </div>
+
+            <!-- 생성 버튼 -->
+            <button id="generate-btn" 
+                class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-4 rounded-xl shadow-md hover:shadow-lg transition-all duration-200 flex justify-center items-center gap-2">
+                <span>QR코드 만들기</span>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-8.707l-3-3a1 1 0 00-1.414 1.414L10.586 9H7a1 1 0 100 2h3.586l-1.293 1.293a1 1 0 101.414 1.414l3-3a1 1 0 000-1.414z" clip-rule="evenodd" />
+                </svg>
+            </button>
+
+            <!-- 결과 영역 (처음엔 숨김) -->
+            <div id="result-section" class="hidden fade-in pt-4 border-t border-slate-100">
+                <div class="text-center space-y-4">
+                    <p class="text-sm font-medium text-slate-500">생성된 QR코드</p>
+                    
+                    <!-- QR코드가 그려질 공간 -->
+                    <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 inline-block">
+                        <div id="qrcode-container" class="w-48 h-48 flex items-center justify-center"></div>
+                    </div>
+
+                    <!-- 다운로드 버튼 -->
+                    <button id="download-btn" 
+                        class="w-full bg-slate-800 hover:bg-slate-900 text-white font-semibold py-3 px-4 rounded-xl shadow-md transition-all duration-200 flex justify-center items-center gap-2 mt-4">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                        </svg>
+                        <span>이미지로 다운로드</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 푸터 -->
+        <div class="bg-slate-50 p-4 text-center border-t border-slate-100">
+            <p class="text-xs text-slate-400">학습 자료 배포용으로 자유롭게 사용하세요.</p>
+        </div>
+    </main>
+
+    <script>
+        // 요소 선택
+        const urlInput = document.getElementById('url-input');
+        const generateBtn = document.getElementById('generate-btn');
+        const resultSection = document.getElementById('result-section');
+        const qrcodeContainer = document.getElementById('qrcode-container');
+        const downloadBtn = document.getElementById('download-btn');
+        const errorMessage = document.getElementById('error-message');
+
+        // QR코드 인스턴스를 저장할 변수
+        let qrCodeInstance = null;
+
+        // QR 생성 함수
+        function generateQRCode() {
+            const url = urlInput.value.trim();
+
+            // 입력값 검증
+            if (!url) {
+                errorMessage.classList.remove('hidden');
+                urlInput.classList.add('border-red-500');
+                urlInput.focus();
+                return;
+            }
+
+            // 에러 메시지 숨기기
+            errorMessage.classList.add('hidden');
+            urlInput.classList.remove('border-red-500');
+
+            // 기존 QR코드 초기화
+            qrcodeContainer.innerHTML = '';
+            
+            // 새 QR코드 생성
+            qrCodeInstance = new QRCode(qrcodeContainer, {
+                text: url,
+                width: 192,  // 48 * 4 (w-48 Tailwind class와 맞춤)
+                height: 192,
+                colorDark: "#0f172a", // slate-900 색상
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.H // 오류 복원력 높음 (로고 등 가려짐에 강함)
+            });
+
+            // 결과 영역 보여주기
+            resultSection.classList.remove('hidden');
+        }
+
+        // 다운로드 함수
+        function downloadQRCode() {
+            // qrcode.js는 canvas와 img 요소를 생성합니다.
+            const canvas = qrcodeContainer.querySelector('canvas');
+            if (canvas) {
+                const imageUrl = canvas.toDataURL("image/png");
+                
+                // 가상의 a 태그를 만들어 다운로드 트리거
+                const downloadLink = document.createElement('a');
+                downloadLink.href = imageUrl;
+                downloadLink.download = 'QR코드_학습자료.png'; // 기본 저장 이름 설정
+                
+                document.body.appendChild(downloadLink);
+                downloadLink.click();
+                document.body.removeChild(downloadLink);
+            } else {
+                alert("QR코드를 생성하는 중 오류가 발생했습니다. 다시 시도해주세요.");
+            }
+        }
+
+        // 이벤트 리스너 등록
+        generateBtn.addEventListener('click', generateQRCode);
+        
+        // 엔터키 입력 시 생성
+        urlInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                generateQRCode();
+            }
+        });
+
+        downloadBtn.addEventListener('click', downloadQRCode);
+
+        // 입력창 클릭 시 기존 내용 선택 (편의성)
+        urlInput.addEventListener('click', function() {
+            this.select();
+        });
+    </script>
+</body>
+</html>
